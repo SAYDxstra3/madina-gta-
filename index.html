@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>مدينة الجريمة - عالم مفتوح</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/hud.css">
+  <link rel="stylesheet" href="css/menu.css">
+  <link rel="stylesheet" href="css/phone.css">
+  <link rel="stylesheet" href="css/map.css">
+</head>
+<body>
+  <div id="loading-screen">
+    <div class="loader">
+      <div class="logo">MADINA</div>
+      <div class="progress"><div class="bar"></div></div>
+      <div id="loading-text">جاري تحميل عالم اللعبة...</div>
+    </div>
+  </div>
+
+  <canvas id="game-canvas" class="game-canvas"></canvas>
+
+  <div id="ui-layer">
+    <div id="hud" class="hud hidden">
+      <div class="hud-row top">
+        <div class="stat health"><div class="bar-fill" id="health-fill"></div><span>الصحة</span></div>
+        <div class="stat armor"><div class="bar-fill" id="armor-fill"></span><span>الدروع</span></div>
+        <div class="money" id="money-display">$0</div>
+        <div class="wanted" id="wanted-display">المطلوب: 0</div>
+      </div>
+      <div class="hud-row bottom">
+        <div class="weapon" id="weapon-display">يدين فارغتين</div>
+        <div class="ammo" id="ammo-display">-- / --</div>
+        <div class="mini-map" id="mini-map"></div>
+        <div class="vehicle-info hidden" id="vehicle-info">
+          <div id="vehicle-speed">0</div><div id="vehicle-fuel">100%</div>
+        </div>
+        <div class="clock" id="clock-display">12:00</div>
+      </div>
+    </div>
+
+    <div id="crosshair"></div>
+
+    <div id="phone" class="phone hidden">
+      <div class="phone-frame">
+        <div class="phone-screen">
+          <div class="phone-header">
+            <div class="phone-time" id="phone-time">12:00</div>
+            <div class="phone-signal">‫4G</div>
+          </div>
+          <div class="phone-apps" id="phone-apps">
+            <div class="app" data-app="contacts">جهات الاتصال</div>
+            <div class="app" data-app="messages">الرسائل</div>
+            <div class="app" data-app="gps">خريطة GPS</div>
+            <div class="app" data-app="banking">المصرفية</div>
+            <div class="app" data-app="missions">المهمات</div>
+            <div class="app" data-app="vehicles">المركبات</div>
+            <div class="app" data-app="music">الموسيقى</div>
+            <div class="app" data-app="camera">الكاميرا</div>
+            <div class="app" data-app="settings">الإعدادات</div>
+          </div>
+          <div class="phone-content" id="phone-content"></div>
+          <div class="phone-nav">
+            <button class="phone-btn" id="phone-back">رجوع</button>
+            <button class="phone-btn" id="phone-close">إغلاق</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="full-map" class="full-map hidden">
+      <div class="map-header">
+        <div class="map-title">خريطة المدينة</div>
+        <button class="map-btn" id="map-close">إغلاق</button>
+      </div>
+      <div class="map-canvas" id="map-canvas"></div>
+      <div class="map-legend" id="map-legend"></div>
+    </div>
+
+    <div id="main-menu" class="main-menu hidden">
+      <div class="menu-panel">
+        <h1>MADINA</h1>
+        <div class="menu-btns">
+          <button class="menu-btn" id="btn-new-game">لعبة جديدة</button>
+          <button class="menu-btn" id="btn-continue">استمرار</button>
+          <button class="menu-btn" id="btn-load">تحميل لعبة</button>
+          <button class="menu-btn" id="btn-settings">الإعدادات</button>
+          <button class="menu-btn" id="btn-controls">عناصر التحكم</button>
+          <button class="menu-btn" id="btn-credits">المطورون</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="pause-menu" class="pause-menu hidden">
+      <div class="menu-panel">
+        <h1>موقوفة</h1>
+        <div class="menu-btns">
+          <button class="menu-btn" id="btn-resume">استئناف اللعبة</button>
+          <button class="menu-btn" id="btn-settings-pause">الإعدادات</button>
+          <button class="menu-btn" id="btn-save">حفظ اللعبة</button>
+          <button class="menu-btn" id="btn-main-menu">القائمة الرئيسية</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="notification" class="notification hidden"></div>
+    <div id="mission-text" class="mission-text hidden"><div id="mission-title"></div><div id="mission-desc"></div></div>
+  </div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://esm.sh/three@0.160.0",
+        "three/addons/": "https://esm.sh/three@0.160.0/examples/jsm/",
+        "cannon-es": "https://esm.sh/cannon-es@0.20.0"
+      }
+    }
+  </script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

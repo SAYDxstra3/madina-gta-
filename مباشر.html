@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مباشر - لعبة العالم المفتوح</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+html,body { width:100%; height:100%; overflow:hidden; background:#05070a; font-family:'Segoe UI',Tahoma,sans-serif; color:#fff; }
+#canvas { position:absolute; top:0; left:0; width:100%; height:100%; display:block; }
+#ui { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:10; padding:20px; display:flex; flex-direction:column; justify-content:space-between; }
+#ui * { pointer-events:auto; }
+#menu { position:fixed; inset:0; background:rgba(2,4,7,0.95); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:100; text-align:center; }
+#menu h1 { font-size:2.5rem; color:#b30000; margin-bottom:1rem; letter-spacing:0.2rem; text-transform:uppercase; }
+#menu button { padding:14px 28px; font-size:1.2rem; margin:8px; background:#1a1f2a; border:1px solid #334155; color:#fff; border-radius:8px; cursor:pointer; }
+#menu button:hover { background:#242f3e; border-color:#475569; }
+.hud-row { display:flex; gap:20px; justify-content:flex-end; }
+.stat { background:rgba(10,14,18,0.8); border:1px solid #334155; border-radius:8px; padding:8px 12px; font-weight:700; font-size:0.9rem; }
+.money { color:#4ade80; font-weight:800; font-size:1.2rem; }
+.wanted { color:#f87171; font-weight:800; font-size:1rem; }
+#crosshair { position:absolute; top:50%; left:50%; width:24px; height:24px; border:2px solid rgba(255,255,255,0.6); border-radius:50%; transform:translate(-50%,-50%); pointer-events:none; z-index:20; }
+#notify { position:fixed; top:140px; left:50%; transform:translateX(-50%); background:rgba(15,20,25,0.9); border:1px solid #334155; border-left:4px solid #b30000; padding:10px 20px; border-radius:6px; font-weight:700; z-index:50; pointer-events:none; display:none; }
+.help { position:fixed; bottom:20px; left:20px; color:#94a3b8; font-size:0.85rem; line-height:1.6; max-width:300px; }
+</style>
+</head>
+<body>
+
+<div id="menu">
+  <h1>مادينا</h1>
+  <p>لعبة العالم المفتوح - تشغيل مباشر</p>
+  <button id="btnStart">بدء اللعبة</button>
+  <p style="margin-top:12px; color:#666;">اضغط مرتين على هذا الملف في المجلد للعب</p>
+</div>
+
+<div id="ui" style="display:none">
+  <div class="hud-row">
+    <div class="stat">الصحة: <span id="hp">100</span></div>
+    <div class="stat">الدروع: <span id="ar">0</span></div>
+    <div class="money">المال: <span id="money">$2500</span></div>
+    <div class="wanted">المطلوب: <span id="wanted">0</span></div>
+  </div>
+  <div id="crosshair"></div>
+</div>
+
+<div id="notify"></div>
+
+<div class="help">
+  WASD: الحركة<br>
+  الفأرة: النظر والكاميرا<br>
+  Shift: جري<br>
+  Space: قفزة<br>
+  C: انحناء<br>
+  E: دخول/خروج مركبة<br>
+  نقر أيسر: إطلاق نار<br>
+  نقر أيمن: تصويب<br>
+  Tab: تبديل سلاح<br>
+  M: خريطة<br>
+  P/Esc: توقف
+</div>
+
+<canvas id="canvas"></canvas>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://unpkg.com/cannon-es@0.20.0/dist/cannon-es.js"></script>
+<script>
+(() => {
+  const menu = document.getElementById('menu');
+  const ui = document.getElementById('ui');
+  const btnStart = document.getElementById('btnStart');
+  const notifyEl = document.getElementById('notify');
+
+  // Three.js setup
+  const canvas = document.getElementById('canvas');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x87ceeb);
+  scene.fog = new THREE.FogExp2(0x87ceeb, 0.0015);
+
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+  camera.position.set(0, 5, 10);
+
+  const ambient = new THREE.AmbientLight(0xffffff, 0.5);
+  scene.add(ambient);
+
+  const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+  dirLight.position.set(50, 100, 30);
+  dirLight.castShadow = true;
+  dirLight.shadow.mapSize.width = 2048;
+  dirLight.shadow.mapSize.height = 2048;
+  scene.add(dirLight);
+
+  // Cannon.js setup
+  const world = new CANNON.World();
+  world.gravity.set(0, -9.82, 0);
+  world.broadphase = new CANNON.SAPBroadphase(world);
+  world.solver.iterations = 10;
+
+  // Ground
+  const groundGeo = new THREE.PlaneGeometry(2000, 2000, 32, 32);
+  groundGeo.rotateX(-Math.PI / 2);
+  const groundMat = new THREE.MeshStandardMaterial({ color: 0x2d3a2e, roughness: 1 });
+  const groundMesh = new THREE.Mesh(groundGeo, groundMat);
+  groundMesh.receiveShadow = true;
+  scene.add(groundMesh);
+
+  const groundBody = new CANNON.Body({ mass: 0, shape: new CANNON.Plane() });
+  groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
+  world.addBody(groundBody);
+
+  // Simple buildings
+  for (let i = 0; i < 20; i++) {
+    const x = (Math.random() - 0.5) * 600;
+    const z = (Math.random() - 0.5) * 600;
+    const w = 20 + Math.random() * 40;
+    const h = 10 + Math.random() * 80;
+    const d = 20 + Math.random() * 40;
+    const bGeo = new THREE.BoxGeometry(w, h, d);
+    const bMat = new THREE.MeshStandardMaterial({ color: 0xcccccc });
+    const bMesh = new THREE.Mesh(bGeo, bMat);
+    bMesh.position.set(x, h / 2, z);
+    bMesh.castShadow = true;
+    bMesh.receiveShadow = true;
+    scene.add(bMesh);
+
+    const bBody = new CANNON.Body({ mass: 0, shape: new CANNON.Box(new CANNON.Vec3(w/2, h/2, d/2)) });
+    bBody.position.set(x, h/2, z);
+    world.addBody(bBody);
+  }
+
+  // Player
+  const playerGeo = new THREE.BoxGeometry(0.6, 1.7, 0.6);
+  const playerMat = new THREE.MeshStandardMaterial({ color: 0x3388ff });
+  const playerMesh = new THREE.Mesh(playerGeo, playerMat);
+  playerMesh.position.set(0, 2, 0);
+  playerMesh.castShadow = true;
+  scene.add(playerMesh);
+
+  const playerShape = new CANNON.Box(new CANNON.Vec3(0.3, 0.85, 0.3));
+  const playerBody = new CANNON.Body({ mass: 70, shape: playerShape, linearDamping: 0.5 });
+  playerBody.position.set(0, 2, 0);
+  world.addBody(playerBody);
+
+  // Input
+  const keys = {};
+  window.addEventListener('keydown', e => { keys[e.code] = true; });
+  window.addEventListener('keyup', e => { keys[e.code] = false; });
+  let mouseLocked = false;
+  let yaw = 0, pitch = 0;
+
+  canvas.addEventListener('click', () => {
+    canvas.requestPointerLock();
+  });
+  document.addEventListener('pointerlockchange', () => {
+    mouseLocked = document.pointerLockElement === canvas;
+  });
+  window.addEventListener('mousemove', e => {
+    if (mouseLocked) {
+      yaw -= e.movementX * 0.002;
+      pitch -= e.movementY * 0.002;
+      pitch = Math.max(-Math.PI/2 + 0.05, Math.min(Math.PI/2 - 0.05, pitch));
+    }
+  });
+  window.addEventListener('mousedown', e => {
+    if (!mouseLocked) return;
+    if (e.button === 0) shoot();
+  });
+
+  // State
+  let hp = 100, armor = 0, money = 2500, wanted = 0;
+  let inVehicle = false;
+  let vehicleMesh = null, vehicleBody = null;
+  let weaponIndex = 0;
+  const weapons = ['يدين', 'مسدس', 'بندقية اقتحام', 'قناصة'];
+  let lastShot = 0;
+
+  function notify(msg) {
+    notifyEl.textContent = msg;
+    notifyEl.style.display = 'block';
+    setTimeout(() => notifyEl.style.display = 'none', 2000);
+  }
+
+  function updateHUD() {
+    document.getElementById('hp').textContent = hp;
+    document.getElementById('ar').textContent = armor;
+    document.getElementById('money').textContent = '$' + money;
+    document.getElementById('wanted').textContent = wanted;
+  }
+
+  function shoot() {
+    const now = Date.now();
+    if (now - lastShot < 300) return;
+    lastShot = now;
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(new THREE.Vector2(0,0), camera);
+    const hits = raycaster.intersectObjects(scene.children, true);
+    if (hits.length > 0) {
+      notify('أصيب الهدف');
+      if (Math.random() < 0.4) { wanted++; updateHUD(); notify('مستوى المطلوب: ' + wanted); }
+    }
+  }
+
+  btnStart.addEventListener('click', () => {
+    menu.style.display = 'none';
+    ui.style.display = 'block';
+    canvas.requestPointerLock();
+    updateHUD();
+  });
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  // Game loop
+  let last = performance.now();
+  function loop(now) {
+    const dt = Math.min((now - last) / 1000, 0.1);
+    last = now;
+
+    world.step(1/60, dt, 3);
+
+    if (menu.style.display === 'none') {
+      // Player controls
+      const camDir = new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);
+      camDir.y = 0; camDir.normalize();
+      const camRight = new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion);
+      camRight.y = 0; camRight.normalize();
+
+      const move = new THREE.Vector3();
+      if (keys['KeyW']) move.add(camDir);
+      if (keys['KeyS']) move.sub(camDir);
+      if (keys['KeyD']) move.add(camRight);
+      if (keys['KeyA']) move.sub(camRight);
+      if (move.length() > 0) move.normalize();
+
+      const speed = (keys['ShiftLeft'] || keys['ShiftRight']) ? 12 : 7;
+      const force = move.multiplyScalar(speed * 80);
+      playerBody.applyForce(force, playerBody.position);
+
+      // Jump
+      if (keys['Space']) {
+        const vel = playerBody.velocity;
+        if (Math.abs(vel.y) < 0.1) playerBody.applyForce(new CANNON.Vec3(0, 400, 0), playerBody.position);
+      }
+
+      // Sync mesh
+      playerMesh.position.copy(playerBody.position);
+      playerMesh.position.y += 0;
+      playerMesh.quaternion.copy(playerBody.quaternion);
+
+      // Camera follow
+      const targetPos = playerMesh.position.clone().add(new THREE.Vector3(0, 1.6, 0));
+      const camOffset = new THREE.Vector3(0, 1.6, 5).applyQuaternion(new THREE.Quaternion().setFromEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ')));
+      camera.position.copy(targetPos).add(camOffset);
+      camera.lookAt(targetPos);
+
+      // Simple auto-wanted decay
+      if (wanted > 0) {
+        wantedDecay = (wantedDecay || 0) + dt;
+        if (wantedDecay > 3) { wanted = Math.max(0, wanted - 0.1); wantedDecay = 0; updateHUD(); }
+      }
+    }
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
