@@ -78,7 +78,9 @@ export class Game {
 
     this.camera = new CameraController(this.renderer.camera, this.player, this);
     this.vehicles = new VehicleManager(this.physics, this.renderer.scene, this.player, this);
+    await this.vehicles.init();
     this.npcs = new NPCManager(this.physics, this.renderer.scene, this.world, this);
+    await this.npcs.init();
     this.police = new PoliceAI(this, this.physics, this.player, this.npcs, this.vehicles);
     this.npcs.game = this;
     this.combat = new CombatManager(this.physics, this.player, this.police, this);
@@ -205,25 +207,36 @@ export class Game {
     const now = performance.now();
 
     if (this.state === GAME_STATE.PLAYING && !this.paused) {
-      this.physics.step(dt);
-      this.input.update(dt);
-      this.player.update(dt);
-      this.camera.update(dt);
-      this.vehicles.update(dt);
-      this.npcs.update(dt);
-      this.police.update(dt);
-      this.combat.update(dt);
-      this.missions.update(dt);
-      this.economy.update(dt);
-      this.weather.update(dt);
-      this.time.update(dt);
-      this.audio.update(dt, this.player);
-      this.world.update(dt);
-      this.ui.update(dt);
+      try {
+        this.physics.step(dt);
+        this.input.update(dt);
+        this.player.update(dt);
+        this.camera.update(dt);
+        this.vehicles.update(dt);
+        this.npcs.update(dt);
+        this.police.update(dt);
+        this.combat.update(dt);
+        this.missions.update(dt);
+        this.weather.update(dt);
+        this.time.update(dt);
+        this.audio.update(dt, this.player);
+        this.world.update(dt);
+        this.ui.update(dt);
+      } catch (err) {
+        console.error('Game loop error:', err);
+        if (!this._loopErrorShown) {
+          this._loopErrorShown = true;
+          try { this.notify('خطأ داخلي: ' + (err && err.message ? err.message : err)); } catch (e) {}
+        }
+      }
     }
 
     this.input.endFrame();
-    this.renderer.render(this.camera.camera, this.state !== GAME_STATE.MENU && this.state !== GAME_STATE.LOADING);
+    try {
+      this.renderer.render(this.camera.camera, this.state !== GAME_STATE.MENU && this.state !== GAME_STATE.LOADING);
+    } catch (err) {
+      console.error('Render error:', err);
+    }
     this.animationId = requestAnimationFrame(() => this.loop());
   }
 

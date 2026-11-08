@@ -50,6 +50,14 @@ export class EconomyManager {
     return this.removeCash(price);
   }
 
+  update(dt) {
+    this._t = (this._t || 0) + dt;
+    if (this._t > 60) {
+      this._t = 0;
+      this.cash = Math.max(0, this.cash);
+    }
+  }
+
   load(data) {
     if (data) {
       this.cash = data.cash !== undefined ? data.cash : this.cash;
