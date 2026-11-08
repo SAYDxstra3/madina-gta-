@@ -1,0 +1,11 @@
+.main-menu, .pause-menu {
+  position: fixed; inset: 0; background: rgba(2, 4, 7, 0.92); display: flex; align-items: center; justify-content: center;
+  z-index: 300; backdrop-filter: blur(8px);
+}
+.menu-panel { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 2.5rem 3rem; min-width: 320px; box-shadow: 0 20px 60px rgba(0,0,0,0.8); text-align: center; }
+.menu-panel h1 { font-size: 2.5rem; font-weight: 900; color: #b30000; letter-spacing: 0.25rem; margin-bottom: 2rem; text-transform: uppercase; text-shadow: 0 4px 12px rgba(179,0,0,0.4); }
+.menu-btns { display: flex; flex-direction: column; gap: 10px; }
+.menu-btn { width: 100%; text-align: center; font-weight: 700; font-size: 1rem; }
+.pause-menu .menu-panel h1 { color: #e8e8e8; }
+
+#btn-continue:disabled { opacity: 0.5; cursor: not-allowed; }

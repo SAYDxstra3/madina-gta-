@@ -1,0 +1,22 @@
+.phone {
+  position: fixed; bottom: 30px; right: 30px; width: 340px; height: 620px; z-index: 250; pointer-events: none;
+}
+.phone-frame {
+  width: 100%; height: 100%; background: #111827; border: 14px solid #1f2937; border-radius: 48px;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.8); position: relative; overflow: hidden; pointer-events: auto;
+}
+.phone-frame::before { content: ''; position: absolute; top: 28px; left: 50%; transform: translateX(-50%); width: 120px; height: 14px; background: #374151; border-radius: 7px; }
+.phone-screen { width: 100%; height: 100%; background: #000; overflow: hidden; position: relative; }
+.phone-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 18px; border-bottom: 1px solid #27272a; }
+.phone-time { font-size: 1.1rem; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
+.phone-signal { font-size: 0.8rem; color: #a1a1aa; }
+.phone-apps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; padding: 20px 18px; }
+.app { background: #27272a; border-radius: 16px; height: 70px; display: flex; align-items: center; justify-content: center;
+  font-size: 0.85rem; font-weight: 700; color: #fff; cursor: pointer; border: 1px solid transparent; transition: all 0.15s; }
+.app:hover { background: #3f3f46; border-color: #52525b; transform: translateY(-2px); }
+.app:active { transform: scale(0.95); }
+.phone-content { padding: 16px 18px; min-height: 260px; color: #e4e4e7; font-size: 0.95rem; line-height: 1.5; overflow-y: auto; }
+.phone-content .empty { color: #a1a1aa; font-style: italic; text-align: center; margin-top: 2rem; }
+.phone-nav { display: flex; justify-content: space-between; padding: 12px 18px; border-top: 1px solid #27272a; gap: 10px; }
+.phone-btn { flex: 1; background: #27272a; border: 1px solid #3f3f46; color: #e4e4e7; padding: 10px; border-radius: 10px; font-size: 0.85rem; font-weight: 700; cursor: pointer; }
+.phone-btn:hover { background: #3f3f46; }
